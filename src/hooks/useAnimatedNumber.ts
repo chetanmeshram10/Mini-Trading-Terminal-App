@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 
 export function useAnimatedNumber(target: number, duration = 450) {
+  const reduce =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const [value, setValue] = useState(target)
   const from = useRef(target)
 
   useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) {
-      from.current = target
-      setValue(target)
-      return
-    }
+    if (reduce) return
     const startVal = from.current
     const start = performance.now()
     let raf = 0
@@ -24,7 +21,7 @@ export function useAnimatedNumber(target: number, duration = 450) {
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
-  }, [target, duration])
+  }, [target, duration, reduce])
 
-  return value
+  return reduce ? target : value
 }

@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { useTerminal } from '../store/useTerminal'
 import { feed } from '../lib/priceFeed'
 
@@ -24,21 +24,29 @@ const Row = memo(function Row({ symbol }: { symbol: string }) {
   const selected = useTerminal((s) => s.selected === symbol)
   const select = useTerminal((s) => s.select)
   const remove = useTerminal((s) => s.removeSymbol)
-  const prev = useRef<number | undefined>(undefined)
-  const [flash, setFlash] = useState('')
+  const [prevTick, setPrevTick] = useState(tick)
   const [history, setHistory] = useState<number[]>([])
+  const [flash, setFlash] = useState('')
 
+  // Update derived state during render when a new tick arrives (React-recommended pattern)
+  if (tick !== prevTick) {
+    setPrevTick(tick)
+    if (tick) {
+      setHistory((h) => [...h.slice(-29), tick.price])
+      const p = prevTick?.price
+      if (p !== undefined && p !== tick.price) {
+        setFlash(tick.price > p ? 'bg-emerald-500/20' : 'bg-rose-500/20')
+      }
+    }
+  }
+
+  // Clear the flash after 300 ms (setState inside a timer callback is fine)
   useEffect(() => {
-    if (!tick) return
-    setHistory((h) => [...h.slice(-29), tick.price])
-    const p = prev.current
-    prev.current = tick.price
-    if (p === undefined || p === tick.price) return
-    setFlash(tick.price > p ? 'bg-emerald-500/20' : 'bg-rose-500/20')
+    if (!flash) return
     const t = setTimeout(() => setFlash(''), 300)
     return () => clearTimeout(t)
-  }, [tick])
-
+  }, [flash])
+  
   const up = (tick?.changePct ?? 0) >= 0
   const base = symbol.replace(/USDT$/, '')
 

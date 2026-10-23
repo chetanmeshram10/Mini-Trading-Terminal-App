@@ -8,10 +8,10 @@ const WS = 'wss://data-stream.binance.vision/ws'
 export function Chart({ symbol }: { symbol: string }) {
   const container = useRef<HTMLDivElement>(null)
   const [iv, setIv] = useState<(typeof INTERVALS)[number]>('1m')
-  const [error, setError] = useState(false)
+    const [errorKey, setErrorKey] = useState('')
+    const error = errorKey === `${symbol}-${iv}`
 
   useEffect(() => {
-    setError(false)
     const chart = createChart(container.current!, {
       autoSize: true,
       layout: { background: { color: 'rgba(0,0,0,0)' }, textColor: '#94a3b8', fontFamily: 'JetBrains Mono' },
@@ -40,7 +40,7 @@ export function Chart({ symbol }: { symbol: string }) {
           series.update({ time: (k.t / 1000) as UTCTimestamp, open: +k.o, high: +k.h, low: +k.l, close: +k.c })
         }
       })
-      .catch(() => !cancelled && setError(true))
+      .catch(() => { if (!cancelled) setErrorKey(`${symbol}-${iv}`) })
 
     return () => { cancelled = true; ws?.close(); chart.remove() }
   }, [symbol, iv])
